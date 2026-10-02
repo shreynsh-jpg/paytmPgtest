@@ -16,7 +16,7 @@ Open http://localhost:5000
 ## Connect Paytm
 
 1. In the Paytm Business dashboard, open **Developer Settings → API Keys** and copy the **Test** MID and Merchant Key.
-2. Put them in `.env` (`PAYTM_MID`, `PAYTM_MERCHANT_KEY`), keep `PAYTM_ENV=STAGING`, `PAYTM_WEBSITE=WEBSTAGING`.
+2. Put them in `.env` (`PAYTM_MID`, `PAYTM_MERCHANT_KEY`), keep `PAYTM_ENV=STAGING`, `PAYTM_WEBSITE=WEBSTAGING`, `PAYTM_INDUSTRY_TYPE_ID=Retail`, and `PAYTM_CHANNEL_ID=WEB`.
 3. Restart the app. The mock banner disappears, and "Pay" opens the real Paytm checkout (use Paytm's test cards/wallet credentials).
 
 For live payments: switch to the **Production** keys, `PAYTM_ENV=PRODUCTION`, `PAYTM_WEBSITE=DEFAULT`, and set `BASE_URL` to your public `https://` domain.
@@ -42,7 +42,7 @@ Vercel runs `app.py` directly (it exports the Flask `app`). Its filesystem is no
 3. **Storage → Create Database → Neon (Postgres)** and connect it to the project. This sets `DATABASE_URL` automatically.
 4. **Settings → Environment Variables**, add:
    - `PAYTM_MID`, `PAYTM_MERCHANT_KEY`
-   - `PAYTM_ENV` (`STAGING` or `PRODUCTION`), `PAYTM_WEBSITE` (`WEBSTAGING` or `DEFAULT`)
+   - `PAYTM_ENV` (`STAGING` or `PRODUCTION`), `PAYTM_WEBSITE` (`WEBSTAGING` or `DEFAULT`), `PAYTM_INDUSTRY_TYPE_ID` (for example `Retail`), and `PAYTM_CHANNEL_ID` (`WEB` for websites)
    - `MERCHANT_NAME`
    - `BASE_URL` only if you use a custom domain. Otherwise it defaults to `https://<project>.vercel.app`.
 5. Redeploy. The table is created automatically on first start.

@@ -33,6 +33,8 @@ PAYTM_MID = os.getenv("PAYTM_MID", "").strip()
 PAYTM_MERCHANT_KEY = os.getenv("PAYTM_MERCHANT_KEY", "").strip()
 PAYTM_ENV = os.getenv("PAYTM_ENV", "STAGING").strip().upper()
 PAYTM_WEBSITE = os.getenv("PAYTM_WEBSITE", "WEBSTAGING").strip()
+PAYTM_INDUSTRY_TYPE_ID = os.getenv("PAYTM_INDUSTRY_TYPE_ID", "Retail").strip()
+PAYTM_CHANNEL_ID = os.getenv("PAYTM_CHANNEL_ID", "WEB").strip()
 # Where Paytm sends the payment result. On Vercel this defaults to the project's production URL.
 BASE_URL = (
     os.getenv("BASE_URL")
@@ -161,6 +163,8 @@ def paytm_initiate(order_id, amount, cust_id):
         "requestType": "Payment",
         "mid": PAYTM_MID,
         "websiteName": PAYTM_WEBSITE,
+        "industryTypeId": PAYTM_INDUSTRY_TYPE_ID,
+        "channelId": PAYTM_CHANNEL_ID,
         "orderId": order_id,
         "callbackUrl": BASE_URL + url_for("payment_callback"),
         "txnAmount": {"value": amount, "currency": "INR"},
