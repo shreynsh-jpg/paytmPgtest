@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Payment status{% endblock %}
+
+{% block content %}
+{% set titles = {
+  'SUCCESS': 'Payment successful',
+  'FAILED': 'Payment failed',
+  'INIT_FAILED': 'Payment could not be started',
+  'AMOUNT_MISMATCH': 'Payment needs review',
+  'PENDING': 'Payment pending',
+  'CREATED': 'Payment not completed'
+} %}
+{% set icons = {'SUCCESS': '✓', 'PENDING': '…', 'CREATED': '…'} %}
+<main class="single">
+  <section class="card center">
+    <div class="status-icon {{ order.status }}">{{ icons.get(order.status, '✕') }}</div>
+    <h1>{{ titles.get(order.status, order.status) }}</h1>
+    <p class="sub">
+      {% if order.status == 'SUCCESS' %}Thank you, {{ order.name }}. A confirmation will be sent to {{ order.email }}.
+      {% elif order.status == 'PENDING' %}Your bank hasn't confirmed this payment yet. Don't pay again; check back shortly.
+      {% elif order.status == 'AMOUNT_MISMATCH' %}The paid amount didn't match the order. Please contact support with your order ID.
+      {% else %}{{ order.resp_msg or 'No money was taken. You can try again.' }}{% endif %}
+    </p>
+
+    <div class="summary" style="text-align:left">
+      <dl>
+        <div class="line"><dt>Order ID</dt><dd>{{ order.order_id }}</dd></div>
+        {% if order.txn_id %}<div class="line"><dt>Transaction ID</dt><dd>{{ order.txn_id }}</dd></div>{% endif %}
+        <div class="line total"><dt>Amount</dt><dd>₹{{ order.amount }}</dd></div>
+      </dl>
+    </div>
+
+    <div class="actions">
+      {% if order.status == 'PENDING' %}
+        <a class="btn" href="{{ url_for('payment_result', order_id=order.order_id) }}">Refresh status</a>
+      {% elif order.status != 'SUCCESS' %}
+        <a class="btn" href="{{ url_for('index') }}">Try again</a>
+      {% endif %}
+      <a class="btn secondary" href="{{ url_for('index') }}">Back to home</a>
+    </div>
+  </section>
+</main>
+{% endblock %}

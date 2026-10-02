@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<main>
+  <section class="card">
+    <h1>Make a payment</h1>
+    <p class="sub">Enter the amount and your details, then pay with UPI, cards, net banking or Paytm Wallet.</p>
+
+    <div class="error" id="error" role="alert"></div>
+
+    <form id="pay-form" novalidate>
+      <div class="field">
+        <label for="amount">Amount (INR)</label>
+        <div class="amount-wrap">
+          <span>₹</span>
+          <input id="amount" name="amount" type="number" inputmode="decimal"
+                 min="{{ min_amount }}" max="{{ max_amount }}" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="quick">
+          <button type="button" data-amount="100">₹100</button>
+          <button type="button" data-amount="500">₹500</button>
+          <button type="button" data-amount="1000">₹1,000</button>
+          <button type="button" data-amount="2000">₹2,000</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="name">Full name</label>
+        <input id="name" name="name" autocomplete="name" required>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="phone">Mobile number</label>
+          <input id="phone" name="phone" type="tel" inputmode="numeric" maxlength="10"
+                 pattern="[0-9]{10}" autocomplete="tel-national" placeholder="10-digit" required>
+        </div>
+      </div>
+
+      <button class="btn" id="pay-btn" type="submit">
+        <span class="spinner"></span>
+        <span id="pay-label">Pay securely</span>
+      </button>
+      <p class="note">You'll complete the payment in Paytm's secure checkout window.</p>
+    </form>
+  </section>
+
+  <aside class="card summary">
+    <h2>Order summary</h2>
+    <dl>
+      <div class="line"><dt>Merchant</dt><dd>{{ merchant_name }}</dd></div>
+      <div class="line"><dt>Gateway</dt><dd>Paytm{% if not mock_mode and paytm_env != 'PRODUCTION' %} (test){% endif %}</dd></div>
+      <div class="line total"><dt>Total</dt><dd id="summary-amount">₹0.00</dd></div>
+    </dl>
+    <div class="methods">
+      <span>UPI</span><span>Cards</span><span>Net Banking</span><span>Paytm Wallet</span><span>EMI</span>
+    </div>
+  </aside>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.CHECKOUT_CONFIG = {
+    mockMode: {{ 'true' if mock_mode else 'false' }},
+    checkoutJsUrl: {{ checkout_js_url | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='checkout.js') }}"></script>
+{% endblock %}

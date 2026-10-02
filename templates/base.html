@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Checkout{% endblock %} · {{ merchant_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <div class="inner">
+      <a class="brand" href="{{ url_for('index') }}">{{ merchant_name }}</a>
+      <span class="secure">🔒 Secure payments by Paytm</span>
+    </div>
+  </header>
+
+  {% if mock_mode %}
+  <div class="banner-wrap">
+    <div class="banner"><strong>Mock mode:</strong> no Paytm credentials configured. Payments are simulated; add PAYTM_MID and PAYTM_MERCHANT_KEY to <code>.env</code> to use Paytm.</div>
+  </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+
+  <footer>&copy; {{ merchant_name }}. Payments are processed securely by Paytm Payment Gateway.</footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

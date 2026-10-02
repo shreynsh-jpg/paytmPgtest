@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Simulated gateway{% endblock %}
+
+{% block content %}
+<main class="single">
+  <section class="card center">
+    <h1>Simulated Paytm checkout</h1>
+    <p class="sub">This stands in for the Paytm payment window while no credentials are set.</p>
+    <div class="summary" style="text-align:left">
+      <dl>
+        <div class="line"><dt>Order ID</dt><dd>{{ order.order_id }}</dd></div>
+        <div class="line"><dt>Customer</dt><dd>{{ order.name }}</dd></div>
+        <div class="line total"><dt>Amount</dt><dd>₹{{ order.amount }}</dd></div>
+      </dl>
+    </div>
+    <form method="post" class="actions">
+      <button class="btn" name="outcome" value="success">Simulate success</button>
+      <button class="btn danger" name="outcome" value="failure">Simulate failure</button>
+    </form>
+  </section>
+</main>
+{% endblock %}
