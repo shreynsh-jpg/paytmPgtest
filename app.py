@@ -399,11 +399,15 @@ def paytm_create_subscription(order_id, plan_id, cust_id, name, email, phone, fi
         # amount"). Each debit is then sent by our own Renew call for exactly the plan amount.
         "subscriptionAmountType": "VARIABLE",
         "subscriptionMaxAmount": plan["amount"],
+        # ON-DEMAND ("as presented") mandate starting today. UPI only accepts a start date of today or
+        # today + one frequency period, and a monthly mandate allows one debit per cycle (the ₹1 counts),
+        # so a MONTH mandate can't take ₹99 tomorrow. Our billing job schedules each plan-period debit
+        # itself (plan["unit"] / next_due_date) and pre-notifies every one, as UPI requires.
+        # Grace days are not supported for on-demand mandates.
         "subscriptionFrequency": "1",
-        "subscriptionFrequencyUnit": plan["unit"],
+        "subscriptionFrequencyUnit": "ONDEMAND",
         "subscriptionPaymentMode": PAYTM_SUBSCRIPTION_PAYMENT_MODE,
-        "subscriptionStartDate": first_debit_date.isoformat(),
-        "subscriptionGraceDays": SUBSCRIPTION_GRACE_DAYS,
+        "subscriptionStartDate": datetime.now(IST).date().isoformat(),
         "subscriptionExpiryDate": expiry_date.isoformat(),
         "subscriptionEnableRetry": "0",
     }
