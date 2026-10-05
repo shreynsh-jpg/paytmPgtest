@@ -1,0 +1,28 @@
+# Manually run from GitHub → Actions → "Collect from active mandates" → Run workflow.
+# Sends the pre-debit notice now to every active mandate; the hourly billing job debits the
+# plan amount ~24 hours later. Leave "confirm" unticked first to preview who would be charged.
+name: Collect from active mandates
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Send the notices for real (unticked = preview only)"
+        type: boolean
+        default: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call /admin/collect-now
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          curl -fsS --max-time 120 -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "{\"confirm\": $CONFIRM}" \
+            https://paytm-pgtest.vercel.app/admin/collect-now | python3 -m json.tool

@@ -438,17 +438,22 @@ def paytm_cancel_subscription(subs_id):
     return paytm_post(f"/subscription/cancel?{query}", body, {"tokenType": "AES"})
 
 
+def pre_notify_reference(subs_id, due_date):
+    """Unique per subscription and debit date: Paytm rejects a reused referenceId (3049 Duplicate Reference Id)."""
+    suffix = hashlib.sha256(subs_id.encode()).hexdigest()[:12].upper()
+    return f"PN{suffix}{due_date:%Y%m%d}"
+
+
 def paytm_subscription_pre_notify(sub, due_date):
     """Ask Paytm to send the required pre-debit notice before a scheduled renewal."""
     subs_id = sub["subs_id"]
-    suffix = hashlib.sha256(subs_id.encode()).hexdigest()[:12].upper()
-    order_id = f"PN{suffix}{due_date:%Y%m%d}"
+    reference_id = pre_notify_reference(subs_id, due_date)
     body = {
         "mid": PAYTM_MID,
         "subscriptionId": subs_id,
         "subsId": subs_id,
-        "referenceId": subs_id,
-        "orderId": order_id,
+        "referenceId": reference_id,
+        "orderId": reference_id,
         "txnAmount": sub["amount"],
         "txnDate": due_date.strftime("%d-%m-%Y"),  # "Date on which the debit is intended to happen"
         "txnMessage": f"{PLANS[sub['plan']]['name']} subscription renewal",
@@ -465,6 +470,7 @@ def paytm_subscription_renew(sub, due_date, order_id):
         "subscriptionId": sub["subs_id"],
         "orderId": order_id,
         "txnAmount": {"value": sub["amount"], "currency": "INR"},
+        "prenotifyReferenceId": pre_notify_reference(sub["subs_id"], due_date),  # links the debit to its notice
     }
     query = urlencode({"mid": PAYTM_MID, "orderId": order_id})
     return paytm_post(f"/subscription/renew?{query}", body)
@@ -988,6 +994,63 @@ def run_sync():
         "renewals": renewals,
         "errors": errors,
     }
+
+
+def collect_now(dry_run=True):
+    """Bring every active mandate's next debit forward to tomorrow and send its pre-debit notice now,
+    so the hourly billing job debits the plan amount once the notice is PRE_NOTIFY_HOURS old.
+    With dry_run, only lists what would happen."""
+    tomorrow = datetime.now(IST).date() + timedelta(days=1)
+    subs = db_execute(
+        "SELECT * FROM subscriptions WHERE subs_id IS NOT NULL AND status='ACTIVE' ORDER BY created_at"
+    ).fetchall()
+    results = []
+    for sub in subs:
+        paid = [p for p in list_subscription_payments(sub["subs_id"])
+                if p["status"] == "SUCCESS" and p["order_id"] != sub["order_id"]]
+        row = {
+            "subs_id": sub["subs_id"],
+            "customer": f'{sub["name"]} (******{(sub["phone"] or "")[-4:]})',
+            "amount": sub["amount"],
+            "current_next_debit": sub["next_due_date"],
+            "last_plan_debit": datetime.fromtimestamp(paid[0]["created_at"], IST).strftime("%Y-%m-%d %H:%M") if paid else None,
+        }
+        current = None
+        if sub["next_due_date"]:
+            current = get_subscription_payment(
+                subscription_order_id(sub["subs_id"], date.fromisoformat(sub["next_due_date"])))
+        if sub["sub_status"] not in (None, "ACTIVE"):
+            row["action"] = f"skip: mandate sub-status {sub['sub_status']}"
+        elif sub["next_due_date"] == tomorrow.isoformat() and sub["pre_notified_date"] == tomorrow.isoformat():
+            row["action"] = "skip: already notified for a debit tomorrow"
+        elif current is not None and current["status"] == "PENDING":
+            row["action"] = "skip: a debit is still settling"
+        elif dry_run:
+            row["action"] = f"would notify now and debit ₹{sub['amount']} on {tomorrow.isoformat()}"
+        else:
+            try:
+                info = paytm_subscription_pre_notify(sub, tomorrow).get("body", {}).get("resultInfo", {})
+            except requests.RequestException as exc:
+                info = {"message": str(exc)}
+            if paytm_result_ok(info):
+                update_subscription(sub["order_id"], next_due_date=tomorrow.isoformat(),
+                                    pre_notified_date=tomorrow.isoformat(), pre_notified_at=int(time.time()))
+                row["action"] = f"notified; ₹{sub['amount']} will be debited from {tomorrow.isoformat()} once 24h pass"
+            else:
+                row["action"] = "FAILED: " + (info.get("message") or info.get("resultMsg") or json.dumps(info))
+                app.logger.error("Collect-now pre-notify failed for %s: %s", sub["subs_id"], info)
+        results.append(row)
+    return {"dry_run": dry_run, "debit_date": tomorrow.isoformat(), "subscriptions": results}
+
+
+@app.post("/admin/collect-now")
+def admin_collect_now():
+    """Run collect_now. Same Bearer CRON_SECRET as /cron/sync; dry run unless {"confirm": true}."""
+    expected = f"Bearer {CRON_SECRET}"
+    if MOCK_MODE or not CRON_SECRET or not hmac.compare_digest(request.headers.get("Authorization", ""), expected):
+        abort(401)
+    data = request.get_json(silent=True) or {}
+    return jsonify(collect_now(dry_run=data.get("confirm") is not True))
 
 
 @app.cli.command("sync")
