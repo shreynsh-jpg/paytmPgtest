@@ -557,7 +557,8 @@ def on_mandate_update(sub):
 
 def process_subscription_billing(sub):
     """Send a pre-debit notice and confirm one scheduled renewal without duplicate charges."""
-    if sub["status"] != "ACTIVE" or sub["sub_status"] != "ACTIVE":
+    # Paytm may omit subStatus for an active on-demand UPI mandate; only a non-active one blocks billing.
+    if sub["status"] != "ACTIVE" or sub["sub_status"] not in (None, "", "ACTIVE"):
         return {"pre_notification": False, "renewal": False, "error": None}
     if not sub["next_due_date"]:
         return {
@@ -1013,13 +1014,15 @@ def collect_now(dry_run=True):
             "customer": f'{sub["name"]} (******{(sub["phone"] or "")[-4:]})',
             "amount": sub["amount"],
             "current_next_debit": sub["next_due_date"],
+            "mandate_status": f'{sub["status"]} / {sub["sub_status"]}',
+            "notified_for": sub["pre_notified_date"],
             "last_plan_debit": datetime.fromtimestamp(paid[0]["created_at"], IST).strftime("%Y-%m-%d %H:%M") if paid else None,
         }
         current = None
         if sub["next_due_date"]:
             current = get_subscription_payment(
                 subscription_order_id(sub["subs_id"], date.fromisoformat(sub["next_due_date"])))
-        if sub["sub_status"] not in (None, "ACTIVE"):
+        if sub["sub_status"] not in (None, "", "ACTIVE"):
             row["action"] = f"skip: mandate sub-status {sub['sub_status']}"
         elif sub["next_due_date"] == tomorrow.isoformat() and sub["pre_notified_date"] == tomorrow.isoformat():
             row["action"] = "skip: already notified for a debit tomorrow"
