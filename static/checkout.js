@@ -8,6 +8,9 @@
   var errorBox = document.getElementById("error");
   var amountInput = document.getElementById("amount");
   var summaryAmount = document.getElementById("summary-amount");
+  var planInputs = form.querySelectorAll("input[name=plan]");
+  var endpoint = form.dataset.endpoint || "/api/initiate";
+  var verb = form.dataset.verb || "Pay";
   var paytmScript = null;
 
   function formatINR(value) {
@@ -16,9 +19,24 @@
     return "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  // The amount comes from the amount field on the checkout page, or the chosen plan on /subscribe.
+  function currentAmount() {
+    if (amountInput) return amountInput.value;
+    var plan = form.querySelector("input[name=plan]:checked");
+    return plan ? plan.dataset.amount : "";
+  }
+
   function updateSummary() {
-    summaryAmount.textContent = formatINR(amountInput.value);
-    label.textContent = amountInput.value ? "Pay " + formatINR(amountInput.value) : "Pay securely";
+    var amount = currentAmount();
+    var mandateAmount = form.dataset.mandateAmount;
+    if (mandateAmount) {
+      // Subscriptions: only the AutoPay setup charge is paid now; the plan fee is auto-debited later.
+      summaryAmount.textContent = formatINR(mandateAmount);
+      label.textContent = "Pay " + formatINR(mandateAmount) + " & start AutoPay";
+      return;
+    }
+    summaryAmount.textContent = formatINR(amount);
+    label.textContent = amount ? verb + " " + formatINR(amount) : verb + " securely";
   }
 
   function showError(msg) {
@@ -85,7 +103,8 @@
       updateSummary();
     });
   });
-  amountInput.addEventListener("input", updateSummary);
+  if (amountInput) amountInput.addEventListener("input", updateSummary);
+  planInputs.forEach(function (p) { p.addEventListener("change", updateSummary); });
 
   document.getElementById("phone").addEventListener("input", function (e) {
     e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
@@ -101,11 +120,13 @@
     // Start loading Paytm's script in parallel with creating the order.
     var paytmReady = cfg.mockMode ? Promise.resolve() : loadPaytm();
 
-    fetch("/api/initiate", {
+    var plan = form.querySelector("input[name=plan]:checked");
+    fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        amount: amountInput.value,
+        amount: amountInput ? amountInput.value : undefined,
+        plan: plan ? plan.value : undefined,
         name: document.getElementById("name").value,
         email: document.getElementById("email").value,
         phone: document.getElementById("phone").value

@@ -1,0 +1,21 @@
+# Runs the subscription billing job every hour, so the first auto-debit happens ~24 hours after
+# signup (Vercel's Hobby plan only allows a daily cron, which stays in vercel.json as a backup).
+name: Hourly billing
+
+on:
+  schedule:
+    - cron: "5 * * * *" # GitHub may start scheduled runs a few minutes late
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call /cron/sync
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --retry 3 --retry-delay 10 --max-time 60 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://paytm-pgtest.vercel.app/cron/sync

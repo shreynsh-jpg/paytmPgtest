@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Subscribe{% endblock %}
+
+{% block content %}
+<main>
+  <section class="card">
+    <h1>Start a subscription</h1>
+    <p class="sub">Pay ₹{{ mandate_amount }} now to set up UPI AutoPay. Your plan fee is then debited automatically {{ 'tomorrow' if first_debit_days == 1 else 'in ' ~ first_debit_days ~ ' days' }}, and every billing period after that. You'll get a notice from your UPI app before each debit, and you can cancel any time.</p>
+
+    <div class="error" id="error" role="alert"></div>
+
+    <form id="pay-form" data-endpoint="{{ url_for('api_subscribe') }}" data-verb="Pay"
+          data-mandate-amount="{{ mandate_amount }}" novalidate>
+      <div class="field">
+        <label>Plan</label>
+        <div class="plans">
+          {% for id, plan in plans.items() %}
+          <label class="plan">
+            <input type="radio" name="plan" value="{{ id }}" data-amount="{{ plan.amount }}" {% if loop.first %}checked{% endif %} required>
+            <span class="plan-name">{{ plan.name }}</span>
+            <span class="plan-price">₹{{ plan.amount }} <small>/ {{ plan.per }}</small></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="name">Full name</label>
+        <input id="name" name="name" autocomplete="name" required>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="phone">Mobile number</label>
+          <input id="phone" name="phone" type="tel" inputmode="numeric" maxlength="10"
+                 pattern="[0-9]{10}" autocomplete="tel-national" placeholder="10-digit" required>
+        </div>
+      </div>
+
+      <button class="btn" id="pay-btn" type="submit">
+        <span class="spinner"></span>
+        <span id="pay-label">Subscribe securely</span>
+      </button>
+      <p class="note">Today you pay only the ₹{{ mandate_amount }} AutoPay setup charge. Your UPI app notifies you at least 24 hours before each plan debit; the exact date is on your subscription page after signup.</p>
+    </form>
+  </section>
+
+  <aside class="card summary">
+    <h2>Due today</h2>
+    <dl>
+      <div class="line"><dt>Merchant</dt><dd>{{ merchant_name }}</dd></div>
+      <div class="line"><dt>Gateway</dt><dd>Paytm{% if not mock_mode and paytm_env != 'PRODUCTION' %} (test){% endif %}</dd></div>
+      <div class="line total"><dt>Today</dt><dd id="summary-amount">₹0.00</dd></div>
+    </dl>
+    <div class="methods">
+      <span>UPI Autopay</span>
+    </div>
+  </aside>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.CHECKOUT_CONFIG = {
+    mockMode: {{ 'true' if mock_mode else 'false' }},
+    checkoutJsUrl: {{ checkout_js_url | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='checkout.js') }}"></script>
+{% endblock %}

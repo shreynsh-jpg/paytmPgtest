@@ -188,3 +188,20 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 186, 24
 @keyframes spin { to { transform: rotate(360deg); } }
 
 footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 24px 16px 40px; }
+
+/* Subscription plans */
+.plans { display: grid; gap: 10px; }
+.plan {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
+  padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer;
+}
+.plan:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.plan input { width: auto; margin: 0; }
+.plan-name { font-weight: 600; }
+.plan-price { font-weight: 700; color: var(--accent-dark); }
+.plan-price small { color: var(--muted); font-weight: 400; }
+.history-title { font-size: 1rem; text-align: left; margin: 24px 0 4px; }
+.actions form { display: grid; }
+.nav { display: flex; gap: 16px; margin-right: auto; margin-left: 20px; font-size: .9rem; }
+.nav a { color: var(--muted); text-decoration: none; }
+.nav a:hover { color: var(--accent-dark); }
