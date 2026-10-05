@@ -133,7 +133,13 @@
       })
     })
       .then(function (res) {
-        return res.json().then(function (data) {
+        return res.text().then(function (text) {
+          var data;
+          try {
+            data = JSON.parse(text);
+          } catch (_) {
+            throw new Error("Server error (HTTP " + res.status + "). Check the server logs.");
+          }
           if (!res.ok) throw new Error(data.error || "Something went wrong.");
           return data;
         });
@@ -147,7 +153,7 @@
       })
       .catch(function (err) {
         setLoading(false);
-        showError(err.message);
+        showError((err && err.message) || "Could not open Paytm checkout.");
       });
   });
 

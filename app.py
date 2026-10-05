@@ -103,7 +103,10 @@ DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "orders.db")
 if os.getenv("VERCEL") and not DATABASE_URL:
     raise RuntimeError("DATABASE_URL is not set. Add a Postgres database (e.g. Neon) to the Vercel project.")
 
-app = Flask(__name__)
+# Vercel only serves static assets from public/ (Flask's own static/ folder is not
+# deployed there), so keep them in public/static: served at /static/* both locally
+# by Flask and on Vercel by its CDN.
+app = Flask(__name__, static_folder="public/static", static_url_path="/static")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 app.logger.setLevel(logging.INFO)
 
@@ -1000,6 +1003,21 @@ def cron_sync():
 def healthz():
     db_execute("SELECT 1")
     return jsonify(ok=True, env=PAYTM_ENV, mock=MOCK_MODE)
+
+
+@app.get("/api/health")
+def health():
+    """Non-secret configuration summary, to check what the deployment is actually using."""
+    return jsonify(
+        mode="MOCK" if MOCK_MODE else PAYTM_ENV,
+        mid_set=bool(PAYTM_MID),
+        merchant_key_set=bool(PAYTM_MERCHANT_KEY),
+        paytm_host=PAYTM_HOST,
+        website=PAYTM_WEBSITE,
+        channel_id=PAYTM_CHANNEL_ID,
+        callback_url=BASE_URL + url_for("payment_callback"),
+        database="postgres" if DATABASE_URL else "sqlite",
+    )
 
 
 # --- mock gateway (only when no credentials are configured) -----------------

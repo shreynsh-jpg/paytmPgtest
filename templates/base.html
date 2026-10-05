@@ -18,7 +18,7 @@
 
   {% if mock_mode %}
   <div class="banner-wrap">
-    <div class="banner"><strong>Mock mode:</strong> no Paytm credentials configured. Payments are simulated; add PAYTM_MID and PAYTM_MERCHANT_KEY to <code>.env</code> to use Paytm.</div>
+    <div class="banner"><strong>Mock mode:</strong> no Paytm credentials configured. Payments are simulated; set <code>PAYTM_MID</code> and <code>PAYTM_MERCHANT_KEY</code> (in <code>.env</code> locally, or in Vercel → Settings → Environment Variables, then redeploy) to use Paytm.</div>
   </div>
   {% endif %}
 

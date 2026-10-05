@@ -34,9 +34,9 @@ For live payments: switch to the **Production** keys, `PAYTM_ENV=PRODUCTION`, `P
 
 | Step | Where |
 |---|---|
-| Customer enters amount + details | `templates/index.html`, `static/checkout.js` |
+| Customer enters amount + details | `templates/index.html`, `public/static/checkout.js` |
 | Server creates order, signs request, calls Paytm *Initiate Transaction* → `txnToken` | `POST /api/initiate` |
-| Browser opens Paytm JS Checkout with the token | `static/checkout.js` |
+| Browser opens Paytm JS Checkout with the token | `public/static/checkout.js` |
 | Paytm posts result → checksum verified → confirmed with *Transaction Status API* | `POST /payment/callback` |
 | Customer sees the result | `GET /payment/result/<order_id>` |
 
@@ -81,7 +81,17 @@ Vercel runs `app.py` directly (it exports the Flask `app`). Its filesystem is no
    - `PAYTM_SUBSCRIPTION_PAYMENT_MODE=UPI` and `TRIAL_DAYS=7`
    - `MERCHANT_NAME`
    - `BASE_URL` only if you use a custom domain. Otherwise it defaults to `https://<project>.vercel.app`.
-5. Redeploy. The table is created automatically on first start.
+5. Redeploy (environment variable changes only apply to new deployments). The table is created automatically on first start.
+6. Open `https://<your-app>/api/health`. It should show `"mode": "STAGING"` (not `MOCK`), `mid_set: true`, `merchant_key_set: true`, and a `callback_url` on your domain.
+
+Static files (CSS/JS) live in `public/static/` because Vercel only serves static assets from `public/`. Flask's usual `static/` folder is not served on Vercel, and that left the page without `checkout.js`, so Paytm never opened.
+
+### Troubleshooting
+
+- **Mock banner still shows on Vercel:** the env vars aren't set for that environment (Production vs Preview), or you haven't redeployed since adding them.
+- **"Could not load Paytm checkout":** the JS Checkout script for your MID didn't load. Check that `PAYTM_ENV` matches your keys (test keys → `STAGING`).
+- **Paytm error such as "Invalid MID" / "System error":** older MIDs are served from the legacy hosts. Set `PAYTM_HOST=https://securegw-stage.paytm.in` (staging) or `https://securegw.paytm.in` (production) and redeploy.
+- **Page shows "Server error (HTTP 500)":** check the Vercel function logs. Usually `DATABASE_URL` is missing.
 
 ### Going live (one-time payments)
 
