@@ -384,7 +384,7 @@ def add_period(d, unit):
 
 
 def paytm_create_subscription(order_id, plan_id, cust_id, name, email, phone, first_debit_date, expiry_date):
-    """Create a fixed-amount UPI AutoPay mandate: MANDATE_AMOUNT is paid now, the plan amount on each debit."""
+    """Create a UPI AutoPay mandate capped at the plan amount: MANDATE_AMOUNT is paid now, the plan amount on each debit."""
     plan = PLANS[plan_id]
     body = {
         "requestType": "NATIVE_SUBSCRIPTION",
@@ -394,9 +394,11 @@ def paytm_create_subscription(order_id, plan_id, cust_id, name, email, phone, fi
         "callbackUrl": BASE_URL + url_for("subscription_callback"),
         "txnAmount": {"value": MANDATE_AMOUNT, "currency": "INR"},
         "userInfo": {"custId": cust_id, "mobile": phone, "email": email, "firstName": name},
-        "subscriptionAmountType": "FIX",
-        # Without renewalAmount Paytm uses txnAmount (₹1) for every renewal.
-        "renewalAmount": plan["amount"],
+        # VARIABLE, capped at the plan amount: UPI rejects a FIX mandate whose first charge (₹1) is below
+        # renewalAmount ("Paymode selected is not applicable when txn amount is less than the renewal
+        # amount"). Each debit is then sent by our own Renew call for exactly the plan amount.
+        "subscriptionAmountType": "VARIABLE",
+        "subscriptionMaxAmount": plan["amount"],
         "subscriptionFrequency": "1",
         "subscriptionFrequencyUnit": plan["unit"],
         "subscriptionPaymentMode": PAYTM_SUBSCRIPTION_PAYMENT_MODE,
